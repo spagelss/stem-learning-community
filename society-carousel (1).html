@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Professional Societies</title>
+<style>
+  :root{
+    --bg:#ffffff; --ink:#12313b; --muted:#6b7f88; --line:#e3eaee;
+    --accent:#0a8794; --wash:#f3f9fa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#fff;color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+  .wrap{padding:20px 14px 22px;max-width:1200px;margin:0 auto}
+  h2{margin:0 0 14px 4px;font-size:1.15rem;font-weight:600;color:var(--ink)}
+  .stage{position:relative}
+  .track{
+    display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;
+    scroll-behavior:smooth;padding:4px 2px 12px;scrollbar-width:none;
+  }
+  .track::-webkit-scrollbar{display:none}
+  .card{
+    flex:0 0 calc((100% - 48px)/4);min-width:210px;scroll-snap-align:start;
+    display:flex;flex-direction:column;text-decoration:none;color:inherit;
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .card:hover,.card:focus-visible{border-color:var(--accent);box-shadow:0 2px 10px rgba(10,135,148,.12);outline:none}
+  .card:focus-visible{box-shadow:0 0 0 3px rgba(10,135,148,.35)}
+  .pic{
+    height:120px;display:flex;align-items:center;justify-content:center;
+    background:var(--wash);border-bottom:1px solid var(--line);position:relative;padding:10px;
+  }
+  .pic svg{width:92px;height:68px;fill:none;stroke:var(--accent);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+  .pic svg .f{fill:var(--accent);stroke:none}
+  .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;padding:12px}
+  .meta{padding:12px 14px 14px}
+  .name{font-size:.92rem;font-weight:600;line-height:1.3;min-height:2.6em}
+  .host{font-size:.78rem;color:var(--muted);margin-top:6px}
+  .btn{
+    position:absolute;top:44px;width:36px;height:36px;border-radius:50%;
+    border:1px solid var(--line);background:#fff;color:var(--accent);cursor:pointer;
+    font-size:1.3rem;line-height:1;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 1px 5px rgba(18,49,59,.15);z-index:2;
+  }
+  .btn:hover,.btn:focus-visible{border-color:var(--accent);outline:none}
+  .prev{left:-8px}.next{right:-8px}
+  .dots{display:flex;justify-content:center;gap:7px;margin-top:6px}
+  .dot{width:7px;height:7px;border-radius:50%;background:#d3dee3;border:0;padding:0;cursor:pointer}
+  .dot[aria-current="true"]{background:var(--accent)}
+  @media (max-width:900px){ .card{flex-basis:calc((100% - 32px)/3)} }
+  @media (max-width:640px){ .card{flex-basis:calc((100% - 16px)/2)} }
+  @media (max-width:420px){ .card{flex-basis:82%} .prev{left:2px}.next{right:2px} }
+  @media (prefers-reduced-motion: reduce){ .track{scroll-behavior:auto} .card{transition:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Professional societies &amp; organizations</h2>
+  <div class="stage">
+    <button class="btn prev" aria-label="Previous">&#8249;</button>
+    <div class="track" id="track" role="region" aria-label="Professional society links" tabindex="0"></div>
+    <button class="btn next" aria-label="Next">&#8250;</button>
+  </div>
+  <div class="dots" id="dots"></div>
+</div>
+
+<script>
+/*
+  EDIT HERE. For each organization:
+    name  - label under the picture
+    url   - link target (opens in a new tab)
+    abbr  - text shown on the colored tile
+    color - tile color
+    img   - OPTIONAL. Paste a photo/logo URL (e.g. one saved in your SharePoint
+            Site Assets library) to replace the built-in illustration. If empty
+            or it fails to load, the illustrated tile shows.
+*/
+const ORGS = [
+  {name:"American Institute for Medical and Biological Engineering", abbr:"AIMBE", url:"https://aimbe.org/", color:"#0b5c78", img:""},
+  {name:"National Society of Professional Engineers", abbr:"NSPE", url:"https://www.nspe.org/", color:"#1f3a68", img:""},
+  {name:"American Institute of Chemical Engineers", abbr:"AIChE", url:"https://www.aiche.org/", color:"#7a1f3d", img:""},
+  {name:"American Society of Agricultural and Biological Engineers", abbr:"ASABE", url:"https://asabe.org/", color:"#2f6b3a", img:""},
+  {name:"National Academy of Engineering", abbr:"NAE", url:"https://www.nae.edu/", color:"#3b3f8f", img:""},
+  {name:"ASEE Biomedical Engineering Division", abbr:"ASEE BED", url:"https://sites.asee.org/bed/", color:"#a4551a", img:""},
+  {name:"American Society of Biomechanics", abbr:"ASB", url:"https://asbweb.org/", color:"#5a2d82", img:""},
+  {name:"IEEE Engineering in Medicine and Biology Society", abbr:"EMBS", url:"https://www.embs.org/", color:"#00629b", img:""},
+  {name:"Institute of Physics and Engineering in Medicine", abbr:"IPEM", url:"https://www.ipem.ac.uk/", color:"#0e7c7b", img:""},
+  {name:"International Society for Prosthetics and Orthotics", abbr:"ISPO", url:"https://www.ispoint.org/", color:"#8a2c2c", img:""},
+  {name:"Society For Biomaterials", abbr:"SFB", url:"https://www.biomaterials.org/", color:"#306c8c", img:""},
+  {name:"Society of Women Engineers: Collegiate Membership", abbr:"SWE", url:"https://swe.org/membership/collegiate-membership/", color:"#c0392b", img:""},
+  {name:"Manatee Chamber of Commerce", abbr:"Manatee Chamber", url:"https://www.manateechamber.com", color:"#0d6b87", img:""},
+  {name:"Sarasota Chamber of Commerce", abbr:"Sarasota Chamber", url:"https://www.sarasotachamber.com", color:"#b0561b", img:""},
+  {name:"Biomedical Engineering Society", abbr:"BMES", url:"https://www.bmes.org/", color:"#1d4e89", img:""}
+];
+
+
+/* Illustrations: white line art drawn inline (no external images needed). */
+const ART = {
+ "AIMBE":'<path d="M60 70C20 45 25 15 48 15c7 0 12 5 12 9 0-4 5-9 12-9 23 0 28 30-12 55z"/><path d="M28 42h17l7-14 10 28 8-14h22"/>',
+ "NSPE":'<path d="M25 52a35 32 0 0 1 70 0"/><path d="M15 52h90v9H15z"/><path d="M60 20v32M42 30v22M78 30v22"/>',
+ "AIChE":'<path d="M52 10h16M55 10v22L28 66q-4 7 4 7h56q8 0 4-7L65 32V10"/><path d="M38 54h44"/><circle cx="58" cy="62" r="2.5"/><circle cx="70" cy="58" r="2"/><circle cx="64" cy="44" r="2"/>',
+ "ASABE":'<path d="M60 74V14"/><path d="M60 30Q46 28 42 16Q56 18 60 30M60 30Q74 28 78 16Q64 18 60 30M60 46Q46 44 42 32Q56 34 60 46M60 46Q74 44 78 32Q64 34 60 46M60 62Q46 60 42 48Q56 50 60 62M60 62Q74 60 78 48Q64 50 60 62"/><path d="M60 14l0-8"/><path d="M14 74h92"/>',
+ "NAE":'<path d="M15 30L60 8l45 22z"/><path d="M28 36v26M48 36v26M72 36v26M92 36v26"/><path d="M15 66h90M20 73h80"/>',
+ "ASEE BED":'<path d="M60 14l45 20-45 20-45-20z"/><path d="M35 44v18q25 14 50 0V44"/><path d="M105 34v22"/>',
+ "ASB":'<circle cx="64" cy="13" r="7"/><path d="M60 24l-6 22M58 30l17 8M58 30L42 37M54 46l16 12-8 16M54 46L40 60 30 72"/>',
+ "EMBS":'<path d="M8 40h22l8-24 12 46 10-32 8 16h44"/><circle cx="38" cy="16" r="3" class="f"/><circle cx="50" cy="62" r="3" class="f"/><circle cx="110" cy="46" r="3" class="f"/>',
+ "IPEM":'<ellipse cx="60" cy="40" rx="42" ry="14"/><ellipse cx="60" cy="40" rx="42" ry="14" transform="rotate(60 60 40)"/><ellipse cx="60" cy="40" rx="42" ry="14" transform="rotate(120 60 40)"/><circle cx="60" cy="40" r="5" class="f"/>',
+ "ISPO":'<path d="M46 6h28l-4 28H50z"/><circle cx="60" cy="40" r="5"/><path d="M60 45v20"/><path d="M50 65h34q8 0 8 8H50z"/>',
+ "SFB":'<path d="M60 18l19 11v22L60 62 41 51V29z"/><path d="M60 18V8M79 29l12-6M79 51l12 6M60 62v10M41 51l-12 6M41 29l-12-6"/><circle cx="60" cy="6" r="3" class="f"/><circle cx="93" cy="22" r="3" class="f"/><circle cx="93" cy="58" r="3" class="f"/><circle cx="60" cy="74" r="3" class="f"/><circle cx="27" cy="58" r="3" class="f"/><circle cx="27" cy="22" r="3" class="f"/>',
+ "SWE":'<circle cx="60" cy="40" r="15"/><circle cx="60" cy="40" r="5" class="f"/><path d="M60 14v10M60 56v10M34 40h10M76 40h10M42 22l7 7M71 51l7 7M78 22l-7 7M49 51l-7 7"/>',
+ "Manatee Chamber":'<path d="M18 44Q28 24 60 26q30 2 38 18 2 12-14 14-14 2-24-2-18 4-32-2-12-5-10-10z"/><path d="M98 44q14-6 14 6-4 10-16 6"/><path d="M48 54q-4 12 6 12"/><circle cx="32" cy="38" r="2.5" class="f"/><path d="M8 74q8-6 16 0t16 0 16 0 16 0 16 0"/>',
+ "Sarasota Chamber":'<path d="M38 72Q40 44 50 24"/><path d="M50 24Q30 14 16 28M50 24Q40 6 22 8M50 24Q68 8 84 18M50 24Q66 26 76 42"/><circle cx="92" cy="14" r="7"/><path d="M8 76q8-6 16 0t16 0 16 0 16 0 16 0"/>',
+ "BMES":'<path d="M38 8C38 28 82 28 82 40S38 52 38 72"/><path d="M82 8C82 28 38 28 38 40S82 52 82 72"/><path d="M46 20h28M42 40h36M46 60h28"/>'
+};
+
+const track = document.getElementById('track');
+const dots = document.getElementById('dots');
+
+ORGS.forEach(o => {
+  const a = document.createElement('a');
+  a.className = 'card';
+  a.href = o.url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.setAttribute('aria-label', o.name + ' (opens in a new tab)');
+
+  const pic = document.createElement('div');
+  pic.className = 'pic';
+  if (ART[o.abbr]) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox','0 0 120 80');
+    svg.setAttribute('aria-hidden','true');
+    svg.innerHTML = ART[o.abbr];
+    pic.appendChild(svg);
+  }
+  if (o.img) {
+    const im = document.createElement('img');
+    im.src = o.img; im.alt = '';
+    im.onerror = () => im.remove();
+    pic.appendChild(im);
+  }
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const host = o.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+  meta.innerHTML = '<div class="name"></div><div class="host"></div>';
+  meta.firstChild.textContent = o.name;
+  meta.lastChild.textContent = host;
+
+  a.append(pic, meta);
+  track.appendChild(a);
+});
+
+const cards = () => Array.from(track.children);
+const step = () => {
+  const c = cards()[0];
+  return c ? c.getBoundingClientRect().width + 16 : 240;
+};
+const perView = () => Math.max(1, Math.round(track.clientWidth / step()));
+const pages = () => Math.max(1, Math.ceil(ORGS.length / perView()));
+
+function buildDots(){
+  dots.innerHTML = '';
+  for (let i = 0; i < pages(); i++){
+    const d = document.createElement('button');
+    d.className = 'dot';
+    d.setAttribute('aria-label', 'Go to page ' + (i + 1));
+    d.onclick = () => track.scrollTo({left: i * perView() * step()});
+    dots.appendChild(d);
+  }
+  updateDots();
+}
+function updateDots(){
+  const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+  const idx = atEnd ? pages() - 1 : Math.round(track.scrollLeft / (perView() * step()));
+  Array.from(dots.children).forEach((d, i) => d.setAttribute('aria-current', i === idx));
+}
+function move(dir){
+  const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+  if (dir > 0 && atEnd) track.scrollTo({left: 0});
+  else if (dir < 0 && track.scrollLeft <= 4) track.scrollTo({left: track.scrollWidth});
+  else track.scrollBy({left: dir * perView() * step()});
+}
+document.querySelector('.prev').onclick = () => move(-1);
+document.querySelector('.next').onclick = () => move(1);
+track.addEventListener('scroll', updateDots, {passive:true});
+window.addEventListener('resize', buildDots);
+track.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') move(1);
+  if (e.key === 'ArrowLeft') move(-1);
+});
+buildDots();
+
+// Gentle auto-advance; pauses on hover/focus and is off for reduced-motion users.
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let paused = false;
+['mouseenter','focusin','touchstart'].forEach(ev => track.parentElement.addEventListener(ev, () => paused = true));
+['mouseleave','focusout'].forEach(ev => track.parentElement.addEventListener(ev, () => paused = false));
+if (!reduce) setInterval(() => { if (!paused && !document.hidden) move(1); }, 5000);
+</script>
+</body>
+</html>
